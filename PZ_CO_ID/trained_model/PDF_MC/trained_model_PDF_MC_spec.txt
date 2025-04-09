@@ -1,0 +1,8 @@
+The following are comparison between the current model names and the original names.
+The current names are written in the format "model_PDF_MC_{PDF method}_{photo-z method}_{CO_ratio %}_{weights}_{model_no}.pth"
+The original names are written in the format of "model_PDF_MC_{dataset}.pth"
+
+
+current_model_name.pth          <=      original_model_name.pth
+
+model_PDF_MC_hsc.pth            <=      model_hsc_EPDF_all_[[1, 2], [2, 15]]_rebalance_True_[[1, 2, 3], [0.5, 0.5, 0.5]]_4.pth

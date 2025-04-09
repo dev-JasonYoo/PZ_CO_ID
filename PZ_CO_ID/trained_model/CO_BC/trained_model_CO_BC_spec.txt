@@ -1,0 +1,18 @@
+The following are comparison between the current model names and the original names.
+The current names are written in the format of "model_CO_BC_{dataset}_{PDF method}_{photo-z method}.pth"
+The original names are written in the format "model_CO_BC_{PDF method}_{photo-z method}_{CO_ratio %}_{weights}_{model_no}.pth"
+
+
+current_model_name.pth                          <=      original_model_name.pth
+
+model_CO_BC_hsc_MC_LR.pth                       <=      model_CO_BC_hsc_PDF11_hsc_LR_25_[[1, 2], [4, 30]]_3.pth
+model_CO_BC_hsc_MC_SPIEDERz.pth                 <=      model_CO_BC_hsc_EPDF_all_with_PDF_11_hsc_EPDF_all_25_[[1, 2], [4, 45]]_1.pth
+
+model_CO_BC_hsc_SPIEDERz_LR.pth                 <=      model_CO_BC_hsc_EPDF_hsc_EPDF_LR_10_[[0.7, 1.3, 2], [0.5, 2, 15]]_5.pth
+model_CO_BC_hsc_SPIEDERz_SPIEDERz.pth           <=      model_CO_BC_hsc_EPDF_hsc_EPDF_10_[[0.7, 1.3, 2], [0.5, 2, 15]]_4.pth
+
+model_CO_BC_relz_SPIEDERz_LR.pth                <=      model_CO_BC_relz_EPDF_all_relz_EPDF_all_LR_20_[[1, 2], [2, 15]]_6.pth
+model_CO_BC_relz_SPIEDERz_SPIEDERz.pth          <=      model_CO_BC_relz_EPDF_all_relz_EPDF_all_10_[[1, 2], [2, 15]]_8.pth
+
+model_CO_BC_relz_MC_LR.pth                      <=      model_CO_BC_relz_PDF11_relz_LR_35_[[1, 2], [1, 15]]_16.pth
+model_CO_BC_relz_MC_SPIEDERz.pth                <=      model_CO_BC_relz_EPDF_all_with_PDF_11_relz_EPDF_all_35_[[1, 2], [4, 60]]_4.pth
