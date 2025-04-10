@@ -25,8 +25,8 @@ This simple implementation of neural network linear regression maps 5-band magni
 **PDF_MC** stands for the **P**robability **D**ensity **F**unction **M**ulticlass **C**lassifier, used as one of the methods to generate the photometric density distribution. This simple implementation of multiclass classifier algorithm maps 5-band magnitudes to photometric redshift distributions for each galaxy.
 
 ## Directory structure
-'''
-PZ_CO_ID/
+```
+PZ_CO_ID
 │   .gitignore
 │   LICENSE
 │   README.md
@@ -40,7 +40,7 @@ PZ_CO_ID/
     └───trained_model
         ├───CO_BC
         └───PDF_MC
-'''
+```
 
 # Datasets
 ## Files
