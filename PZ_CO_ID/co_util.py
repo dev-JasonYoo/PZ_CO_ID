@@ -44,7 +44,7 @@ def assign_CO_flag(galaxy_df: DataFrame):
     CO_idx_list = CO_list(galaxy_df).index
 
     galaxy_df["CO?"] = zeros(len(galaxy_df))
-    galaxy_df["CO?"].iloc[CO_idx_list] = 1
+    galaxy_df.loc[CO_idx_list, "CO?"] = 1
 
     return galaxy_df
 

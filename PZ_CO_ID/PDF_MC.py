@@ -14,35 +14,47 @@ from co_util import assign_CO_flag, assign_bin_no, assign_one_hot_encoded_bin_no
 from itertools import repeat
 
 class PDF_MC:
-    def __init__(self, **PDF_MC_config):
-            self.num_input_features = PDF_MC_config["num_input_features"]
-            self.num_hidden_neurons = PDF_MC_config["num_hidden_neurons"]
-            self.num_hidden_layers = PDF_MC_config["num_hidden_layers"]
-            self.num_epochs = PDF_MC_config["num_epochs"]
-            self.learning_rate = PDF_MC_config["learning_rate"]
-            self.size_batch = PDF_MC_config["size_batch"]
-            self.momentum = PDF_MC_config["momentum"]
+    def __init__(self, **config):
+            self.num_input_features = config["num_input_features"]
+            self.num_hidden_neurons = config["num_hidden_neurons"]
+            self.num_hidden_layers = config["num_hidden_layers"]
+            self.num_epochs = config["num_epochs"]
+            self.learning_rate = config["learning_rate"]
+            self.size_batch = config["size_batch"]
+            self.momentum = config["momentum"]
 
             self.bins = generate_bin(4)
             del self.bins[-2]
             self.num_bins = len(self.bins) - 1
-            self.band_col_index = list(range(PDF_MC_config["band_numbers"]))
+            self.band_col_index = list(range(self.num_input_features))
 
-            self.train_ratio = PDF_MC_config["train_ratio"]
-            self.evaluation = PDF_MC_config["evaluation"]
-            self.evaluation_ratio = PDF_MC_config["evaluation_ratio"]
+            self.train_ratio = config["train_ratio"]
+            self.evaluation = config["evaluation"]
+            self.evaluation_ratio = config["evaluation_ratio"]
 
-            self.CO_ratio = PDF_MC_config['CO_ratio']
-            self.iteration = PDF_MC_config['iteration']
-            self.weights_list = PDF_MC_config['weights_list']
-            self.rebalance = PDF_MC_config['rebalance']
-            self.rebalance_list = PDF_MC_config['rebalance_list']
+            self.CO_ratio = config['CO_ratio']
+            self.model_no = config['model_no']
+            self.weights_list = config['weights_list']
+            self.rebalance = config['rebalance']
+            self.rebalance_list = config['rebalance_list']
 
-            self.input_csv_path = PDF_MC_config["input_csv_path"]
-            suffix = f'{self.input_csv_path.stem}_{self.weights_list}_rebalance_{self.rebalance}_{self.rebalance_list}_{self.iteration}'
-            self.output_csv_path = PDF_MC_config["output_dir_path"] / ('results_' + suffix + '.csv')
-            self.output_pdf_path = PDF_MC_config["output_dir_path"] / ('results_' + suffix + '.pdf')
-            self.model_path = PDF_MC_config["model_dir_path"] / ('model_' + suffix + '.pth')
+            self.input_csv_path = config["input_csv_path"]
+            self.suffix = f'{self.input_csv_path.stem}_{self.weights_list}_rebalance_{self.rebalance}_{self.rebalance_list}_{self.model_no}'
+
+            if 'output_csv_path' not in config:
+                self.output_csv_path = config.get("output_dir_path") / f"results_PDF_MC_{self.suffix}.csv"
+            else:
+                self.output_csv_path = config.get("output_csv_path")
+            
+            if 'output_pdf_path' not in config:
+                self.output_pdf_path = config.get("output_dir_path") / f"results_PDF_MC_{self.suffix}.pdf"
+            else:
+                self.output_pdf_path = config.get("output_pdf_path")
+
+            if 'model_path' not in config:
+                self.model_path = config.get("model_dir_path") / f"results_PDF_MC_{self.suffix}.pth"
+            else:
+                self.model_path = config.get("model_path")
 
     class NeuralNetwork(nn.Module):
         def __init__(self, PDF_MC_model, num_input_features, num_hidden_neurons, num_hidden_layers):
@@ -275,7 +287,8 @@ class PDF_MC:
 
             orig_bin_idx = np.where(results['Original bin'] == bin_n)
             pred_spec = results.iloc[orig_bin_idx].loc[:,['Phot z', 'Spec z']].iterrows()
-            pred_CO_filtered = filter(lambda x: True if abs(x[1][0] - x[1][1]) > 1 else False, pred_spec)
+            # pred_CO_filtered = filter(lambda x: True if abs(x[1][0] - x[1][1]) > 1 else False, pred_spec)
+            pred_CO_filtered = filter(lambda x: True if abs(x.iloc[1,0] - x.iloc[1,1]) > 1 else False, pred_spec)
             pred_CO_count = sum([1 for _ in pred_CO_filtered])
             frac_temp.append(round(pred_CO_count / orig_bin_idx[0].size * 100, 2))
 
@@ -302,64 +315,64 @@ class PDF_MC:
 
         return
 
-if __name__ == "__main__":
-    with open("./model_config.json", "r") as f:
-        json_dict = json.load(f)
-        PACKAGE_PATH = Path(json_dict["PACKAGE_PATH"])
-        PDF_MC_config = json_dict["model"]["PDF_MC"]
+# if __name__ == "__main__":
+#     with open("./model_config.json", "r") as f:
+#         json_dict = json.load(f)
+#         PACKAGE_PATH = Path(json_dict["PACKAGE_PATH"])
+#         PDF_MC_config = json_dict["model"]["PDF_MC"]
 
-    PDF_MC_config.update({
-        "input_csv_path": PACKAGE_PATH / 'data/relz_LR.csv',
-        "model_dir_path": PACKAGE_PATH / 'result/model_eval/',
-        "output_dir_path": PACKAGE_PATH / 'result/final/',
-        "train_ratio": 0.999,
-        "evaluation": True,
-        "evaluation_ratio": 0.3,
-        "band_numbers": 5,
-        "CO_ratio": 0.25,
-        "weights_list": [[1, 2], [2, 15]],
-        "rebalance": True,
-        # "rebalance_list": [[1,2,3], [0.5, 0.5, 0.5]], # for hsc
-        "rebalance_list": [[2,3,4], [0.5, 0.5, 0.5]], # for relz
-        'iteration': 0
-    })
+#     PDF_MC_config.update({
+#         "input_csv_path": PACKAGE_PATH / 'data/relz_LR.csv',
+#         "model_path": PACKAGE_PATH / 'result/model_eval/',
+#         "output_path": PACKAGE_PATH / 'result/final/',
+#         "train_ratio": 0.999,
+#         "evaluation": True,
+#         "evaluation_ratio": 0.3,
+#         "band_numbers": 5,
+#         "CO_ratio": 0.25,
+#         "weights_list": [[1, 2], [2, 15]],
+#         "rebalance": True,
+#         # "rebalance_list": [[1,2,3], [0.5, 0.5, 0.5]], # for hsc
+#         "rebalance_list": [[2,3,4], [0.5, 0.5, 0.5]], # for relz
+#         'model_no': 0
+#     })
 
-    # # relz starts
-    # for i in range(5):
-    #     PDF_MC_config['iteration'] += 1
+#     # # relz starts
+#     # for i in range(5):
+#     #     PDF_MC_config['model_no'] += 1
 
-    #     PDF_MC_model = PDF_MC(**PDF_MC_config)
-    #     data = PDF_MC_model.preprocess_data()
-    #     dl = PDF_MC_model.build_dl(data)
-    #     best_model = PDF_MC_model.train_model(dl)
-    #     results = PDF_MC_model.evaluate_model(data, dl)
-    #     PDF_MC_model.save_results(data, results)
+#     #     PDF_MC_model = PDF_MC(**PDF_MC_config)
+#     #     data = PDF_MC_model.preprocess_data()
+#     #     dl = PDF_MC_model.build_dl(data)
+#     #     best_model = PDF_MC_model.train_model(dl)
+#     #     results = PDF_MC_model.evaluate_model(data, dl)
+#     #     PDF_MC_model.save_results(data, results)
 
 
-    # hsc starts
-    PDF_MC_config['input_csv_path'] = PACKAGE_PATH / 'data/hsc_EPDF.csv'
-    PDF_MC_config['iteration'] = 0
-    PDF_MC_config['rebalance_list'] = [[1, 2, 3], [0.5, 0.5, 0.5]]
+#     # hsc starts
+#     PDF_MC_config['input_csv_path'] = PACKAGE_PATH / 'data/hsc_EPDF.csv'
+#     PDF_MC_config['model_no'] = 0
+#     PDF_MC_config['rebalance_list'] = [[1, 2, 3], [0.5, 0.5, 0.5]]
 
-    PDF_MC_config['num_epochs'] = 20
+#     PDF_MC_config['num_epochs'] = 20
 
-    for i in range(1):
-        PDF_MC_config['iteration'] += 1
+#     for i in range(1):
+#         PDF_MC_config['model_no'] += 1
 
-        PDF_MC_model = PDF_MC(**PDF_MC_config)
-        data = PDF_MC_model.preprocess_data()
-        dl = PDF_MC_model.build_dl(data)
-        best_model = PDF_MC_model.train_model(dl)
-        results = PDF_MC_model.evaluate_model(data, dl)
-        PDF_MC_model.save_results(data, results)
+#         PDF_MC_model = PDF_MC(**PDF_MC_config)
+#         data = PDF_MC_model.preprocess_data()
+#         dl = PDF_MC_model.build_dl(data)
+#         best_model = PDF_MC_model.train_model(dl)
+#         results = PDF_MC_model.evaluate_model(data, dl)
+#         PDF_MC_model.save_results(data, results)
 
-    # PDF_MC_model = PDF_MC(**PDF_MC_config)
+#     # PDF_MC_model = PDF_MC(**PDF_MC_config)
 
-    # PDF_MC_model.input_csv_path = PACKAGE_PATH / 'data/relz_EPDF.csv'
-    # PDF_MC_model.model_path = PACKAGE_PATH / 'result/model_eval/PDF_MC_model_relz_EPDF.pth'
-    # PDF_MC_model.rebalance_list = [[2,3,4], [0.5, 0.5, 0.5]]
+#     # PDF_MC_model.input_csv_path = PACKAGE_PATH / 'data/relz_EPDF.csv'
+#     # PDF_MC_model.model_path = PACKAGE_PATH / 'result/model_eval/PDF_MC_model_relz_EPDF.pth'
+#     # PDF_MC_model.rebalance_list = [[2,3,4], [0.5, 0.5, 0.5]]
 
-    # data = PDF_MC_model.preprocess_data()
-    # full_dl = PDF_MC_model.build_full_dl(data)
-    # results = PDF_MC_model.evaluate_model(data, full_dl, full_evaluation = True)
-    # PDF_MC_model.save_results(data, results, full_save = True)
+#     # data = PDF_MC_model.preprocess_data()
+#     # full_dl = PDF_MC_model.build_full_dl(data)
+#     # results = PDF_MC_model.evaluate_model(data, full_dl, full_evaluation = True)
+#     # PDF_MC_model.save_results(data, results, full_save = True)
