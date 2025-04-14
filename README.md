@@ -11,7 +11,7 @@ the errors introduced into science analyses by catastrophic outlier photometric 
 
 # Description
 
-## Abbreviations
+## Models
 
 ### CO_BC
 **CO_BC** stands for the **C**atastrophic **O**utler **B**inary **C**lassification model that takes photometric redshifts and redshift probability distributions of galaxies as input.
@@ -22,7 +22,7 @@ The model outputs a value for each galaxy in between 0 and 1, including, that ca
 This simple implementation of neural network linear regression maps 5-band magnitudes to photometric redshifts for each galaxy.
 
 ### PDF_MC
-**PDF_MC** stands for the **P**robability **D**ensity **F**unction **M**ulticlass **C**lassifier, used as one of the methods to generate the photometric density distribution. This simple implementation of multiclass classifier algorithm maps 5-band magnitudes to photometric redshift distributions for each galaxy.
+**PDF_MC** stands for the **P**robability **D**ensity **F**unction **M**ulticlass **C**lassifier, used as one of the methods to generate the photometric density distribution. This simple implementation of multiclass classifier algorithm maps 5-band magnitudes to photometric redshift distributions in custom bins for each galaxy.
 
 ## Directory structure
 ```

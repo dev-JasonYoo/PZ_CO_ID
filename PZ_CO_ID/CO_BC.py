@@ -113,13 +113,14 @@ class CO_BC:
 
         input_csv_path_photz = self.input_csv_path_photz
         photz_df = pd.read_csv(input_csv_path_photz)
-        raw_df['Phot z'] = photz_df['Phot z']
+        raw_df.loc[:, 'Phot z'] = photz_df['Phot z']
 
         # Add CO column
         # CO: 1, NCO: 0
         spec_photo = pd.DataFrame(raw_df, columns = ['Spec z', 'Phot z'])
 
-        raw_df['CO?'] = np.zeros(len(raw_df), dtype = int)
+        raw_df = raw_df.copy()
+        raw_df['CO?'] = 0
         raw_df.iloc[CO_list(raw_df).index, raw_df.columns.get_loc('CO?')] = 1
         raw_df = raw_df.dropna()
 
@@ -134,16 +135,6 @@ class CO_BC:
             # 3. Set aside evaluation set
             eval_df = raw_df.sample(frac = self.evaluation_ratio)
             df = raw_df.drop(eval_df.index).sample(frac = 1.0)
-
-            # Check
-            print(f'''
-            Length of raw data: {len(raw_df)}
-            Length of evaluation data set: {len(eval_df)}
-            Length of df (for training and test): {len(df)}
-            {len(eval_df) + len(df)}
-            Ratio: {len(eval_df)/len(raw_df)}
-            Any duplicates?: {set(eval_df.index) & set(df.index)}''')
-
             data.update({"df": df, "eval_df": eval_df})
 
         else:
@@ -308,8 +299,6 @@ class CO_BC:
                     idx.extend(i.numpy())
                     CO_true.extend(targets.numpy())
                     CO_pred.extend(outputs.numpy().squeeze(axis = 1))
-            # except TypeError:
-            #     print(outputs.numpy())
 
             else:
                 for i, inputs, targets, zs in dl["test_dl"]:
@@ -349,14 +338,13 @@ class CO_BC:
 
         CO_results = CO_list(results)['Predicted CO?']
         NCO_results = NCO_list(results)['Predicted CO?']
-        print(CO_results, NCO_results)
+
+        fig = plt.figure(figsize = (7, 15.75))
+        ax1 = plt.subplot(3, 1, 1)
 
         # Probability plot
-        fig = plt.figure(figsize = (7, 21))
-        ax1 = plt.subplot(4, 1, 1)
-
-        weights = [np.ones_like(CO_results) / len(CO_results), np.ones_like(NCO_results) / len(NCO_results)]
-        values, bins, _ = plt.hist([CO_results, NCO_results], weights = weights, bins = n_bins)
+        # weights = [np.ones_like(CO_results) / len(CO_results), np.ones_like(NCO_results) / len(NCO_results)]
+        # values, bins, _ = plt.hist([CO_results, NCO_results], weights = weights, bins = n_bins)
         plt.legend(['CO', 'NCO'])
 
         # # Counts
@@ -371,10 +359,10 @@ class CO_BC:
         orig_phot_z = np.array(df['Phot z'])
         orig_spec_z = np.array(df['Spec z'])
 
-        ax2 = plt.subplot(4, 1, 2)
+        ax2 = plt.subplot(3, 1, 1)
         z_vs_num = plotting.plotN(orig_spec_z)
 
-        ax3 = plt.subplot(4, 1, 3)
+        ax3 = plt.subplot(3, 1, 2)
         specz_photz = plotting.plotpzsz(orig_spec_z, orig_phot_z, 0.3)
 
         temp = np.array([
@@ -385,7 +373,7 @@ class CO_BC:
         ])
 
         # plotting.plotvsz(temp.transpose(), 0.5)
-        ax4 = plt.subplot(4, 1, 4)
+        ax4 = plt.subplot(3, 1, 3)
         z_vs_fraction = plotting.plotvsz(temp.transpose(), 0.5, evaluation_ratio = evaluation_ratio)
 
         fig.tight_layout()
