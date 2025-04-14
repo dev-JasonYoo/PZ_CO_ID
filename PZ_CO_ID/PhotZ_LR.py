@@ -28,14 +28,21 @@ class PhotZ_LR:
   NeuralNetwork
   '''
 
-  def __init__(self, **PhotZ_LR_config):
-    self.num_input_features = PhotZ_LR_config["num_input_features"]
-    self.num_hidden_neurons = PhotZ_LR_config["num_hidden_neurons"]
-    self.num_hidden_layers = PhotZ_LR_config["num_hidden_layers"]
-    self.num_epochs = PhotZ_LR_config["num_epochs"]
-    self.learning_rate = PhotZ_LR_config["learning_rate"]
-    self.size_batch = PhotZ_LR_config["size_batch"]
-    self.momentum = PhotZ_LR_config["momentum"]
+  def __init__(self, **config):
+    self.num_input_features = config["num_input_features"]
+    self.num_hidden_neurons = config["num_hidden_neurons"]
+    self.num_hidden_layers = config["num_hidden_layers"]
+    self.num_epochs = config["num_epochs"]
+    self.learning_rate = config["learning_rate"]
+    self.size_batch = config["size_batch"]
+    self.momentum = config["momentum"]
+
+    self.input_csv_path = config["input_csv_path"]
+    self.model_path = config["model_path"]
+
+    self.evaluation = config["evaluation"]
+    if self.evaluation:
+      self.evaluation_ratio = config["evaluation_ratio"]
 
 # more
 
@@ -44,7 +51,7 @@ class PhotZ_LR:
                 num_hidden_neurons,
                 num_hidden_layers):
       # Call __init__() of superclass (nn.Module)
-      super(NeuralNetwork, self).__init__()
+      super(PhotZ_LR.NeuralNetwork, self).__init__()
       # nn.Linear returns Tensor object (vector, matrix, tensor)
       self.input_layer = nn.Linear(num_input_features, num_hidden_neurons)
       # nn.ModuleLIst?
@@ -59,30 +66,18 @@ class PhotZ_LR:
       x = torch.relu(self.output_layer(x))
       return x
 
-  def preprocess_data(self, Phot_Z_LR_config: dict):
-    raw_df = pd.read_csv(PhotZ_LR_config['input_csv_path'])
-    for key, val in PhotZ_LR_config.items():
-      print(key, ':', val)
-
+  def preprocess_data(self):
+    # raw_df = pd.read_csv(config['input_csv_path'])
+    raw_df = pd.read_csv(self.input_csv_path)
     scaler = MinMaxScaler()
     raw_df.iloc[:, :5] = pd.DataFrame(scaler.fit_transform(raw_df.iloc[:, :5]))
 
     raw_df = raw_df.iloc[:, :6]
 
     data = {"raw_df": raw_df}
-    if PhotZ_LR_config["evaluation"]:
-      eval_df = raw_df.sample(frac = PhotZ_LR_config["evaluation_ratio"])
+    if self.evaluation:
+      eval_df = raw_df.sample(frac = self.evaluation_ratio)
       df = raw_df.drop(eval_df.index).sample(frac = 1.0)
-
-      # Check
-      print(f'''
-      Length of raw data: {len(raw_df)}
-      Length of evaluation data set: {len(eval_df)}
-      Length of df (for training and test): {len(df)}
-      {len(eval_df) + len(df)}
-      Ratio: {len(eval_df)/len(raw_df)}
-      Any duplicates?: {set(eval_df.index) & set(df.index)}''')
-
       data.update({"df": df, "eval_df": eval_df})
 
     else:
@@ -92,7 +87,7 @@ class PhotZ_LR:
 
     return data
 
-  def build_dl(self, PhotZ_LR_config, data):
+  def build_dl(self, data, config):
     # raw_df = df + eval_df
     raw_df = data["raw_df"]
     df = data["df"]
@@ -119,13 +114,13 @@ class PhotZ_LR:
     FT_data = TensorDataset(idx_tensor, F_tensor, T_tensor)
 
     # Determine training and test sets
-    train_size = int(len(df) * PhotZ_LR_config["train_ratio"])
+    train_size = int(len(df) * config["train_ratio"])
     test_size = len(df) - train_size
 
     train_data, test_data = random_split(dataset = FT_data,
                                         lengths = [train_size, test_size])
 
-    if PhotZ_LR_config["evaluation"]:
+    if config["evaluation"]:
         # 5. Splitting evaluation dataframe into inputs and outputs dataset
         eval_F = eval_df.iloc[:, 0:5]
         eval_T = eval_df.iloc[:, 5]
@@ -138,42 +133,44 @@ class PhotZ_LR:
 
     # Initialize DataLoader objects
     galaxy_dl = DataLoader(dataset = raw_data,
-                      batch_size = PhotZ_LR_config['size_batch'],
+                      batch_size = config['size_batch'],
                       shuffle = False)
     train_dl = DataLoader(dataset = train_data,
-                          batch_size = PhotZ_LR_config["size_batch"],
+                          batch_size = config["size_batch"],
                           shuffle = True)
     test_dl = DataLoader(dataset = test_data,
-                          batch_size = PhotZ_LR_config["size_batch"],
+                          batch_size = config["size_batch"],
                           shuffle = False)
 
     dl = {"galaxy_dl": galaxy_dl, "train_dl": train_dl, "test_dl": test_dl}
-    if PhotZ_LR_config["evaluation"]:
+    if config["evaluation"]:
         eval_dl = DataLoader(dataset = eval_data,
-                                  batch_size = PhotZ_LR_config["size_batch"],
+                                  batch_size = config["size_batch"],
                                   shuffle = False)
         dl.update({"eval_dl": eval_dl})
 
     return dl
 
-  def train_model(self, PhotZ_LR_config):
+  def train_model(self, dl, config):
     # Initialize model
-    model = NeuralNetwork(PhotZ_LR_config["num_input_features"],
-                          PhotZ_LR_config["num_hidden_neurons"],
-                          PhotZ_LR_config["num_hidden_layers"])
+    model = PhotZ_LR.NeuralNetwork(config["num_input_features"],
+                          config["num_hidden_neurons"],
+                          config["num_hidden_layers"])
 
     # Define loss function and optimizer
     # Mean Sqaured Error loss function
     criterion = nn.MSELoss()
     # Stochastic Gradient Descent
-    optimizer = optim.SGD(model.parameters(), lr = PhotZ_LR_config["learning_rate"], momentum = PhotZ_LR_config["momentum"])
+    optimizer = optim.SGD(model.parameters(), lr = config["learning_rate"], momentum = config["momentum"])
 
     min_loss = 1 # why 1? what are the expected range of loss?
     best_model = None
     loss_data = []
 
+    train_dl = dl["train_dl"]
+
     # Train the model
-    num_epochs = PhotZ_LR_config["num_epochs"]
+    num_epochs = config["num_epochs"]
     for epoch in range(num_epochs):
       # Train
       for idx, inputs, targets in train_dl:
@@ -189,7 +186,7 @@ class PhotZ_LR:
       if loss < min_loss:
         min_loss = loss.item()
         best_model = model.state_dict()
-        torch.save(best_model, PACKAGE_PATH / f'result/model_eval/PhotZ_LR_model_{PhotZ_LR_config["input_csv_path"].stem}_{PhotZ_LR_config["iteration"]}.pth')
+        torch.save(best_model, self.model_path / f'PhotZ_LR_model_{config["input_csv_path"].stem}_{config["model_no"]}.pth')
         print('best model')
 
       # Print
@@ -200,12 +197,12 @@ class PhotZ_LR:
 
     return best_model
 
-  def evaluate_model(self, PhotZ_LR_config):
-    model_save_path = PhotZ_LR_config["PACKAGE_PATH"] / f'result/model_eval/PhotZ_LR_model_{PhotZ_LR_config["input_csv_path"].stem}_{PhotZ_LR_config["iteration"]}.pth'
+  def evaluate_model(self, dl, config):
+    model_save_path = config["model_path"] / f'results/PhotZ_LR_model_{config["input_csv_path"].stem}_{self.model_no}.pth'
 
-    best_model = NeuralNetwork(PhotZ_LR_config['num_input_features'],
-                              PhotZ_LR_config['num_hidden_neurons'],
-                              PhotZ_LR_config['num_hidden_layers'])
+    best_model = PhotZ_LR.NeuralNetwork(config['num_input_features'],
+                              config['num_hidden_neurons'],
+                              config['num_hidden_layers'])
     best_model.load_state_dict(torch.load(model_save_path))
     best_model.eval()
 
@@ -237,8 +234,8 @@ class PhotZ_LR:
 
     return results
 
-  def save_results(self, PhotZ_LR_config, results):
-    results.to_csv(PhotZ_LR_config['output_csv_path'] / f'results_PhotZ_LR_{PhotZ_LR_config["input_csv_path"].stem}_{PhotZ_LR_config["iteration"]}.csv', index = False)
+  def save_results(self, config, results):
+    results.to_csv(config['output_csv_path'] / f'results_PhotZ_LR_{config["input_csv_path"].stem}_{config["model_no"]}.csv', index = False)
 
     fig = plt.figure(figsize = (7,7))
     axes = plt.subplot(1,1,1)
@@ -246,17 +243,17 @@ class PhotZ_LR:
 
     fig.text(0, -0.1, results["mse"][0])
 
-    fig.savefig(PhotZ_LR_config['output_csv_path'] / f'results_PhotZ_LR_{PhotZ_LR_config["input_csv_path"].stem}_{PhotZ_LR_config["iteration"]}.pdf', format="pdf", bbox_inches="tight")
+    fig.savefig(config['output_csv_path'] / f'results_PhotZ_LR_{config["input_csv_path"].stem}_{config["model_no"]}.pdf', format="pdf", bbox_inches="tight")
 
 if __name__ == '__main__':
 
   with open("./model_config.json", "r") as f:
       json_dict = json.load(f)
       PACKAGE_PATH = Path(json_dict["PACKAGE_PATH"])
-      PhotZ_LR_config = json_dict["model"]["PhotZ_LR"]
+      config = json_dict["model"]["PhotZ_LR"]
 
 
-  PhotZ_LR_config.update({
+  config.update({
       "input_csv_path": PACKAGE_PATH / 'data/rel_z.csv',
       "model_path": PACKAGE_PATH / 'result/model_eval/',
       "output_csv_path": PACKAGE_PATH / 'result/final/',
@@ -265,18 +262,18 @@ if __name__ == '__main__':
       "train_ratio": 0.999,
       "PACKAGE_PATH": PACKAGE_PATH,
       "num_input_features": 5,
-      "iteration": 0
+      "model_no": 0
   })
 
-  PhotZ_LR_config["num_epochs"] = 10
+  config["num_epochs"] = 10
 
   for i in range(3):
-    PhotZ_LR_config["iteration"] += 1
+    config["model_no"] += 1
 
-    PhotZ_LR_model = PhotZ_LR(**PhotZ_LR_config)
+    PhotZ_LR_model = PhotZ_LR(**config)
 
-    data = PhotZ_LR_model.preprocess_data(PhotZ_LR_config)
-    dl = PhotZ_LR_model.build_dl(PhotZ_LR_config, data)
-    best_model = PhotZ_LR_model.train_model(PhotZ_LR_config)
-    results = PhotZ_LR_model.evaluate_model(PhotZ_LR_config)
-    PhotZ_LR_model.save_results(PhotZ_LR_config, results)
+    data = PhotZ_LR_model.preprocess_data(config)
+    dl = PhotZ_LR_model.build_dl(config, data)
+    best_model = PhotZ_LR_model.train_model(config)
+    results = PhotZ_LR_model.evaluate_model(config)
+    PhotZ_LR_model.save_results(config, results)
