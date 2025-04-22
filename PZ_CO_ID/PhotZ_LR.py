@@ -44,7 +44,7 @@ class PhotZ_LR:
     if self.evaluation:
       self.evaluation_ratio = config["evaluation_ratio"]
 
-# more
+    self.model_no = config["model_no"]
 
   class NeuralNetwork(nn.Module):
     def __init__(self, num_input_features,
@@ -197,8 +197,8 @@ class PhotZ_LR:
 
     return best_model
 
-  def evaluate_model(self, dl, config):
-    model_save_path = config["model_path"] / f'results/PhotZ_LR_model_{config["input_csv_path"].stem}_{self.model_no}.pth'
+  def evaluate_model(self, data, dl, config):
+    model_save_path = config["model_path"] / f'PhotZ_LR_model_{config["input_csv_path"].stem}_{self.model_no}.pth'
 
     best_model = PhotZ_LR.NeuralNetwork(config['num_input_features'],
                               config['num_hidden_neurons'],
@@ -234,12 +234,12 @@ class PhotZ_LR:
 
     return results
 
-  def save_results(self, config, results):
+  def save_results(self, data, results, config):
     results.to_csv(config['output_csv_path'] / f'results_PhotZ_LR_{config["input_csv_path"].stem}_{config["model_no"]}.csv', index = False)
 
     fig = plt.figure(figsize = (7,7))
     axes = plt.subplot(1,1,1)
-    plotting.plotpzsz(results['Phot z'], results['Spec z'])
+    plotting.plotpzsz(results['Spec z'], results['Phot z'])
 
     fig.text(0, -0.1, results["mse"][0])
 
