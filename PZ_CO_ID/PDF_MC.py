@@ -261,7 +261,9 @@ class PDF_MC:
         idx = results.index.to_numpy()
         bins = self.bins
         num_bins = self.num_bins
-        y_pred = results.iloc[:, 11:] # excluding 5-band magnitudes, Spec z, Phot z,
+        y_pred = results.iloc[:, 7:] # excluding 5-band magnitudes, Spec z, Phot z,
+        print("this is y_pred")
+        print(y_pred)
         y_true = np.digitize(raw_df['Spec z'].iloc[idx].to_numpy(), bins) - 1
         y_pred_max = np.array([bin_no(y_pred_row[1]) for y_pred_row in y_pred.iterrows()])
 
@@ -288,7 +290,8 @@ class PDF_MC:
             orig_bin_idx = np.where(results['Original bin'] == bin_n)
             pred_spec = results.iloc[orig_bin_idx].loc[:,['Phot z', 'Spec z']].iterrows()
             # pred_CO_filtered = filter(lambda x: True if abs(x[1][0] - x[1][1]) > 1 else False, pred_spec)
-            pred_CO_filtered = filter(lambda x: True if abs(x.iloc[1,0] - x.iloc[1,1]) > 1 else False, pred_spec)
+            pred_CO_filtered = filter(lambda x: True if abs(x[1]['Phot z'] - x[1]['Spec z']) > 1 else False, pred_spec)
+            # pred_CO_filtered = filter(lambda x: True if abs(x.iloc[1,0] - x.iloc[1,1]) > 1 else False, pred_spec)
             pred_CO_count = sum([1 for _ in pred_CO_filtered])
             frac_temp.append(round(pred_CO_count / orig_bin_idx[0].size * 100, 2))
 
@@ -297,7 +300,7 @@ class PDF_MC:
         fig = plt.figure(figsize = (7,7))
         ax1 = plt.subplot(1, 1, 1)
 
-        plotting.plotpzsz(results['Phot z'], results['Spec z'])
+        plotting.plotpzsz(results['Spec z'], results['Phot z'])
 
         results_for_each_bins = ''
         for n, frac_pair in enumerate(frac_lists):
